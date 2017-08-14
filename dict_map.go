@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"strings"
+	"sync"
 	"unicode/utf8"
 )
 
@@ -16,6 +17,7 @@ type DictMap struct {
 	// Additionally the other words that use this as a root
 	// what is the next rune in that word
 	currentRunes map[rune]*DictMap
+	wg           sync.WaitGroup
 }
 
 func NewDictMap(input []string) *DictMap {
@@ -43,6 +45,13 @@ func IndentString(level int, inTxt string) string {
 	}
 	return ret_str
 }
+func (dic *DictMap) NewPuzzle(size int, grid [][]rune) (pz *Puzzle) {
+	dic.Wait()
+	pz = NewPuzzle(size)
+	pz.SetDict(dic)
+	pz.Grid = grid
+	return pz
+}
 func (dic DictMap) String() string {
 	var ret_str string
 	if dic.isword {
@@ -60,24 +69,25 @@ func (dic *DictMap) Populate(input []string) {
 	}
 }
 func Readln(r *bufio.Reader) (string, error) {
-  var (
-      isPrefix bool  = true
-          err      error = nil
-              line, ln []byte
-                )
-                  for isPrefix && err == nil {
-                      line, isPrefix, err = r.ReadLine()
-                          ln = append(ln, line...)
-                            }
-                              return string(ln), err
-                              }
-
-func (dic *DictMap) PopulateFile(filename string) {
+	var (
+		isPrefix bool  = true
+		err      error = nil
+		line, ln []byte
+	)
+	for isPrefix && err == nil {
+		line, isPrefix, err = r.ReadLine()
+		ln = append(ln, line...)
+	}
+	return string(ln), err
+}
+func (dic *DictMap) populateFile(filename string, wg *sync.WaitGroup) {
+	defer wg.Done()
 	f, err := os.Open(filename)
 	if err == os.ErrNotExist {
 		return
 	} else if err != nil {
 		if os.IsNotExist(err) {
+			fmt.Printf("error opening file: %T\n", err)
 			return
 		} else {
 			fmt.Printf("error opening file: %T\n", err)
@@ -100,6 +110,14 @@ func (dic *DictMap) PopulateFile(filename string) {
 
 		dic.Add(s)
 	}
+	fmt.Println("Finished reading File")
+
+}
+func (dic *DictMap) PopulateFile(filename string) *sync.WaitGroup {
+
+	dic.wg.Add(1)
+	go dic.populateFile(filename, &dic.wg)
+	return &dic.wg
 }
 func (dic *DictMap) Add(word string) {
 	if len(word) == 0 {
@@ -129,7 +147,9 @@ func (dic *DictMap) Add(word string) {
 	dependantDict.Add(new_word)
 	dic.currentRunes[r] = dependantDict
 }
-
+func (dic *DictMap) Wait() {
+	dic.wg.Wait()
+}
 func (dic DictMap) Exists(inTxt string) bool {
 	isWord, _ := dic.partialExists(inTxt)
 	return isWord

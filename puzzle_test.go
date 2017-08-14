@@ -89,21 +89,22 @@ func TestVisit0(t *testing.T) {
 	close(pz.workerComplete) // Close manually as we haven't started a worker
 	pz.Shutdown()
 }
-func TestFileRead (t *testing.T) {
- dic := NewDictMap([]string{})  // TBD fix this
- dic.PopulateFile("wordlist.txt")
- if !dic.Exists("expression") {
-  log.Fatal("Expression NE")
- }
- if dic.Exists("expr") {
-  log.Fatal("Expr Ex")
- }
-  pz := NewPuzzle(2)
-  pz.SetDict(dic)
-  visitFunc := func( wrd string) {
-    log.Println("Found Word", wrd)
-  }
-  pz.StartWorker(visitFunc)
+func TestFileRead(t *testing.T) {
+	dic := NewDictMap([]string{}) // TBD fix this
+	dic.PopulateFile("wordlist.txt")
+	dic.Wait()
+	if !dic.Exists("expression") {
+		log.Fatal("Expression NE")
+	}
+	if dic.Exists("expr") {
+		log.Fatal("Expr Ex")
+	}
+	pz := NewPuzzle(2)
+	pz.SetDict(dic)
+	visitFunc := func(wrd string) {
+		log.Println("Found Word", wrd)
+	}
+	pz.StartWorker(visitFunc)
 
 	grid := [][]rune{
 		[]rune{'a', 'b'},
@@ -114,7 +115,7 @@ func TestFileRead (t *testing.T) {
 	pz.RunWalk()
 
 	// Having visited, let's make sure the worker can finish
-	 pz.Shutdown() 
+	pz.Shutdown()
 }
 func TestVisit1(t *testing.T) {
 	testDict := []string{
