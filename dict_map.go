@@ -40,6 +40,7 @@ func dumpIndent(level int) string {
 	}
 	return retStr
 }
+
 // IndentString return a new string indented as required
 func IndentString(level int, inTxt string) string {
 	var retStr string
@@ -50,6 +51,7 @@ func IndentString(level int, inTxt string) string {
 	}
 	return retStr
 }
+
 // NewPuzzle return a new puzzle struicture of specified size
 func (dic *DictMap) NewPuzzle(size int, grid [][]rune) (pz *Puzzle) {
 	dic.Wait()
@@ -68,6 +70,7 @@ func (dic DictMap) String() string {
 	}
 	return retStr
 }
+
 // Populate in batches of strings
 func (dic *DictMap) Populate(input []string) {
 	for _, word := range input {
@@ -75,6 +78,7 @@ func (dic *DictMap) Populate(input []string) {
 		dic.Add(word)
 	}
 }
+
 // Readln standard Readln interface
 // Read from any reader and pull in a full line
 func Readln(r *bufio.Reader) (string, error) {
@@ -99,10 +103,10 @@ func (dic *DictMap) populateFile(filename string, wg *sync.WaitGroup) {
 			fmt.Printf("error opening file: %T\n", err)
 			return
 		}
-			fmt.Printf("error opening file: %T\n", err)
-			os.Exit(1)
-			return
-			}
+		fmt.Printf("error opening file: %T\n", err)
+		os.Exit(1)
+		return
+	}
 	defer f.Close()
 	r := bufio.NewReader(f)
 	for s, e := Readln(r); e == nil; s, e = Readln(r) {
@@ -121,6 +125,7 @@ func (dic *DictMap) populateFile(filename string, wg *sync.WaitGroup) {
 	fmt.Println("Finished reading File")
 
 }
+
 // PopulateFile Populate the dictionary from a file of words
 func (dic *DictMap) PopulateFile(filename string) *sync.WaitGroup {
 
@@ -128,6 +133,7 @@ func (dic *DictMap) PopulateFile(filename string) *sync.WaitGroup {
 	go dic.populateFile(filename, &dic.wg)
 	return &dic.wg
 }
+
 // Add a word to the dictionary
 // This builds the rune by rune tree
 func (dic *DictMap) Add(word string) {
@@ -158,10 +164,12 @@ func (dic *DictMap) Add(word string) {
 	dependantDict.Add(newWord)
 	dic.currentRunes[r] = dependantDict
 }
+
 // Wait until all the processing has completed
 func (dic *DictMap) Wait() {
 	dic.wg.Wait()
 }
+
 // Exists returns true is the word exists in the dictionary
 func (dic DictMap) Exists(inTxt string) bool {
 	isWord, _ := dic.partialExists(inTxt)
@@ -180,5 +188,5 @@ func (dic DictMap) partialExists(inTxt string) (isword, partial bool) {
 	if !ok {
 		return false, false
 	}
-		return dependantDict.partialExists(newWord)
-	}
+	return dependantDict.partialExists(newWord)
+}

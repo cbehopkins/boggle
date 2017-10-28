@@ -27,10 +27,12 @@ func (pz *Puzzle) initWorker() {
 func (pz *Puzzle) startWorker(sw func(string)) {
 	go pz.newWordWorker(sw)
 }
+
 // SetDict set the dicitonary we wish to use
 func (pz *Puzzle) SetDict(dct *DictMap) {
 	pz.dict = dct
 }
+
 // NewPuzzle return a new puzzle of the specified size
 func NewPuzzle(size int) *Puzzle {
 	itm := new(Puzzle)
@@ -40,10 +42,12 @@ func NewPuzzle(size int) *Puzzle {
 	}
 	return itm
 }
+
 // Len reports on the size of the puzzle
 func (pz Puzzle) Len() int {
 	return len(pz.Grid)
 }
+
 // Copy one puzzle into anoteher destination one
 func (pz Puzzle) Copy(dst *Puzzle) {
 	dst.newWordChan = pz.newWordChan
@@ -83,6 +87,7 @@ func (pz Puzzle) rxWord(wrdPnt *string) (completeChan chan struct{}) {
 
 	return
 }
+
 // Shutdown the generation
 func (pz Puzzle) Shutdown() {
 	log.Println("Shutdown Called")
@@ -94,6 +99,7 @@ func (pz Puzzle) Shutdown() {
 
 // ErrVisited reports that wee have visited here before
 var ErrVisited = errors.New("Error, we have visited this before")
+
 // Coord is a struct of the coord in use
 type Coord struct {
 	xC int
@@ -179,6 +185,7 @@ func (pz Puzzle) getRune(crd Coord) rune {
 	Xc, Yc := crd.decode()
 	return pz.Grid[Yc][Xc]
 }
+
 // newWord States that a new word has been found
 func (pz Puzzle) newWord(inTxt string) {
 	pz.newWordChan <- inTxt
