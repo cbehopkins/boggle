@@ -110,7 +110,7 @@ func main() {
 	pz.RunWalk()
 	pz.Shutdown()
 
-	for wrd, _ := range wrds_found {
+	for wrd := range wrds_found {
 		fmt.Println("Found Word", wrd)
 	}
 }

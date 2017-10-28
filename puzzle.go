@@ -5,6 +5,7 @@ import (
 	"log"
 )
 
+// Puzzle erm??? Not sure. Any ideas?
 type Puzzle struct {
 	Grid           [][]rune
 	Visited        [][]bool
@@ -13,6 +14,8 @@ type Puzzle struct {
 	dict           *DictMap
 }
 
+// StartWorker Start the worker funciton
+// Needs a callback for what to do with each word you find
 func (pz *Puzzle) StartWorker(sw func(string)) {
 	pz.initWorker()
 	pz.startWorker(sw)
@@ -24,9 +27,11 @@ func (pz *Puzzle) initWorker() {
 func (pz *Puzzle) startWorker(sw func(string)) {
 	go pz.newWordWorker(sw)
 }
+// SetDict set the dicitonary we wish to use
 func (pz *Puzzle) SetDict(dct *DictMap) {
 	pz.dict = dct
 }
+// NewPuzzle return a new puzzle of the specified size
 func NewPuzzle(size int) *Puzzle {
 	itm := new(Puzzle)
 	itm.Visited = make([][]bool, size)
@@ -35,25 +40,27 @@ func NewPuzzle(size int) *Puzzle {
 	}
 	return itm
 }
+// Len reports on the size of the puzzle
 func (pz Puzzle) Len() int {
 	return len(pz.Grid)
 }
-func (src Puzzle) Copy(dst *Puzzle) {
-	dst.newWordChan = src.newWordChan
-	dst.dict = src.dict
-	pz_len := src.Len()
+// Copy one puzzle into anoteher destination one
+func (pz Puzzle) Copy(dst *Puzzle) {
+	dst.newWordChan = pz.newWordChan
+	dst.dict = pz.dict
+	pzLen := pz.Len()
 
-	if dst.Len() != pz_len {
-		dst.Grid = make([][]rune, pz_len)
-		dst.Visited = make([][]bool, pz_len)
+	if dst.Len() != pzLen {
+		dst.Grid = make([][]rune, pzLen)
+		dst.Visited = make([][]bool, pzLen)
 	}
 
-	for i := 0; i < pz_len; i++ {
-		row := make([]rune, pz_len)
-		rowV := make([]bool, pz_len)
-		for j := 0; j < pz_len; j++ {
-			row[j] = src.Grid[i][j]
-			rowV[j] = src.Visited[i][j]
+	for i := 0; i < pzLen; i++ {
+		row := make([]rune, pzLen)
+		rowV := make([]bool, pzLen)
+		for j := 0; j < pzLen; j++ {
+			row[j] = pz.Grid[i][j]
+			rowV[j] = pz.Visited[i][j]
 		}
 		dst.Grid[i] = row
 		dst.Visited[i] = rowV
@@ -65,7 +72,7 @@ func (pz Puzzle) newWordWorker(sw func(string)) {
 	}
 	close(pz.workerComplete)
 }
-func (pz Puzzle) RxWord(wrdPnt *string) (completeChan chan struct{}) {
+func (pz Puzzle) rxWord(wrdPnt *string) (completeChan chan struct{}) {
 	completeChan = make(chan struct{})
 	go func() {
 		word := <-pz.newWordChan
@@ -76,6 +83,7 @@ func (pz Puzzle) RxWord(wrdPnt *string) (completeChan chan struct{}) {
 
 	return
 }
+// Shutdown the generation
 func (pz Puzzle) Shutdown() {
 	log.Println("Shutdown Called")
 	close(pz.newWordChan)
@@ -84,25 +92,26 @@ func (pz Puzzle) Shutdown() {
 	log.Println("Shutdown Complete")
 }
 
+// ErrVisited reports that wee have visited here before
 var ErrVisited = errors.New("Error, we have visited this before")
-
+// Coord is a struct of the coord in use
 type Coord struct {
 	xC int
 	yC int
 }
 
-func (crd Coord) Decode() (xC, yC int) {
+func (crd Coord) decode() (xC, yC int) {
 	return crd.xC, crd.yC
 }
-func (crd *Coord) SetX(xC int) {
+func (crd *Coord) setX(xC int) {
 	crd.xC = xC
 }
-func (crd *Coord) SetY(yC int) {
+func (crd *Coord) setY(yC int) {
 	crd.yC = yC
 }
 func (crd Coord) getCoords(size int) []Coord {
-	ret_array := make([]Coord, 0)
-	Xc, Yc := crd.Decode()
+	retArray := make([]Coord, 0)
+	Xc, Yc := crd.decode()
 
 	for i := -1; i < 2; i++ {
 		for j := -1; j < 2; j++ {
@@ -121,30 +130,30 @@ func (crd Coord) getCoords(size int) []Coord {
 				continue
 			}
 			newCrd := Coord{xC: candidateX, yC: candidateY}
-			ret_array = append(ret_array, newCrd)
+			retArray = append(retArray, newCrd)
 		}
 	}
-	return ret_array
+	return retArray
 }
 
-func (pz Puzzle) Visit(runningWord string, vC Coord) error {
-	if pz.VisitedTrue(vC) {
+func (pz Puzzle) visit(runningWord string, vC Coord) error {
+	if pz.visitedTrue(vC) {
 		return ErrVisited
 	}
 
-	pz.SetVisited(vC)
-	defer pz.ClearVisited(vC)
+	pz.setVisited(vC)
+	defer pz.clearVisited(vC)
 
 	//log.Println("Visiting Coordinate, with run", vC, runningWord)
 	// To visit a coordinagte we:
 	// Look and see if we currently have a word
-	run := pz.GetRune(vC)
+	run := pz.getRune(vC)
 	newWord := runningWord + string(run)
 	var isWord, partial bool
 	isWord, partial = pz.dict.partialExists(newWord)
 	if isWord {
 		// send it out on the results channel
-		pz.NewWord(newWord)
+		pz.newWord(newWord)
 	}
 	if partial {
 		// Walk from this coord
@@ -153,42 +162,47 @@ func (pz Puzzle) Visit(runningWord string, vC Coord) error {
 	}
 	return nil
 }
-func (pz *Puzzle) SetVisited(vC Coord) {
-	Xc, Yc := vC.Decode()
+func (pz *Puzzle) setVisited(vC Coord) {
+	Xc, Yc := vC.decode()
 	pz.Visited[Yc][Xc] = true
 }
-func (pz *Puzzle) ClearVisited(vC Coord) {
-	Xc, Yc := vC.Decode()
+func (pz *Puzzle) clearVisited(vC Coord) {
+	Xc, Yc := vC.decode()
 	pz.Visited[Yc][Xc] = false
 }
 
-func (pz Puzzle) VisitedTrue(vC Coord) bool {
-	Xc, Yc := vC.Decode()
+func (pz Puzzle) visitedTrue(vC Coord) bool {
+	Xc, Yc := vC.decode()
 	return pz.Visited[Yc][Xc]
 }
-func (pz Puzzle) GetRune(crd Coord) rune {
-	Xc, Yc := crd.Decode()
+func (pz Puzzle) getRune(crd Coord) rune {
+	Xc, Yc := crd.decode()
 	return pz.Grid[Yc][Xc]
 }
-func (pz Puzzle) NewWord(inTxt string) {
+// newWord States that a new word has been found
+func (pz Puzzle) newWord(inTxt string) {
 	pz.newWordChan <- inTxt
 }
+
+// Walk the puzzle
+// starting fromt he currel (partially complete) puzzle
+// and try everything at every location
 func (pz Puzzle) Walk(runningWord string, startC Coord) error {
 	pzCopy := new(Puzzle)
 	pz.Copy(pzCopy)
 
 	// Only ever work on a copy of the data
 	// so that we can safely modify it
-	if !pzCopy.VisitedTrue(startC) {
+	if !pzCopy.visitedTrue(startC) {
 		log.Fatalf("Que?%v", pzCopy)
 	}
 	// Calculate each co-ordinate we can visit
 	for _, crd := range startC.getCoords(pz.Len()) {
-		if pzCopy.VisitedTrue(crd) {
+		if pzCopy.visitedTrue(crd) {
 			continue
 		}
-		// Visit it
-		err := pzCopy.Visit(runningWord, crd)
+		// visit it
+		err := pzCopy.visit(runningWord, crd)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -196,11 +210,13 @@ func (pz Puzzle) Walk(runningWord string, startC Coord) error {
 	return nil
 }
 
+// RunWalk Run a walk through the puzzle
+// visit each coord in turn
 func (pz Puzzle) RunWalk() {
-	pz_len := pz.Len()
-	for i := 0; i < pz_len; i++ {
-		for j := 0; j < pz_len; j++ {
-			pz.Visit("", Coord{i, j})
+	pzLen := pz.Len()
+	for i := 0; i < pzLen; i++ {
+		for j := 0; j < pzLen; j++ {
+			pz.visit("", Coord{i, j})
 		}
 	}
 }

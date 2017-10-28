@@ -10,6 +10,9 @@ import (
 	"unicode/utf8"
 )
 
+// DictMap is a heirachical tree
+// that represents all supplied words as a tree of runes
+// each node can be a complete word
 type DictMap struct {
 	// is (the path that got us here) a word in itself?
 	isword bool
@@ -20,6 +23,7 @@ type DictMap struct {
 	wg           sync.WaitGroup
 }
 
+// NewDictMap return a new dictionary
 func NewDictMap(input []string) *DictMap {
 	itm := new(DictMap)
 	itm.currentRunes = make(map[rune]*DictMap)
@@ -29,22 +33,24 @@ func NewDictMap(input []string) *DictMap {
 	return itm
 }
 func dumpIndent(level int) string {
-	var ret_str string
+	var retStr string
 
 	for i := 0; i < level; i++ {
-		ret_str += " "
+		retStr += " "
 	}
-	return ret_str
+	return retStr
 }
+// IndentString return a new string indented as required
 func IndentString(level int, inTxt string) string {
-	var ret_str string
+	var retStr string
 	nl := ""
 	for _, tmpStr := range strings.Split(inTxt, "\n") {
-		ret_str += nl + dumpIndent(1) + tmpStr
+		retStr += nl + dumpIndent(1) + tmpStr
 		nl = "\n"
 	}
-	return ret_str
+	return retStr
 }
+// NewPuzzle return a new puzzle struicture of specified size
 func (dic *DictMap) NewPuzzle(size int, grid [][]rune) (pz *Puzzle) {
 	dic.Wait()
 	pz = NewPuzzle(size)
@@ -53,25 +59,28 @@ func (dic *DictMap) NewPuzzle(size int, grid [][]rune) (pz *Puzzle) {
 	return pz
 }
 func (dic DictMap) String() string {
-	var ret_str string
+	var retStr string
 	if dic.isword {
-		ret_str += "Word"
+		retStr += "Word"
 	}
 	for key, value := range dic.currentRunes {
-		ret_str += "\n" + string(key) + IndentString(1, value.String())
+		retStr += "\n" + string(key) + IndentString(1, value.String())
 	}
-	return ret_str
+	return retStr
 }
+// Populate in batches of strings
 func (dic *DictMap) Populate(input []string) {
 	for _, word := range input {
 		//log.Println("Populating Word", input)
 		dic.Add(word)
 	}
 }
+// Readln standard Readln interface
+// Read from any reader and pull in a full line
 func Readln(r *bufio.Reader) (string, error) {
 	var (
-		isPrefix bool  = true
-		err      error = nil
+		isPrefix = true
+		err      error
 		line, ln []byte
 	)
 	for isPrefix && err == nil {
@@ -89,12 +98,11 @@ func (dic *DictMap) populateFile(filename string, wg *sync.WaitGroup) {
 		if os.IsNotExist(err) {
 			fmt.Printf("error opening file: %T\n", err)
 			return
-		} else {
+		}
 			fmt.Printf("error opening file: %T\n", err)
 			os.Exit(1)
 			return
-		}
-	}
+			}
 	defer f.Close()
 	r := bufio.NewReader(f)
 	for s, e := Readln(r); e == nil; s, e = Readln(r) {
@@ -113,12 +121,15 @@ func (dic *DictMap) populateFile(filename string, wg *sync.WaitGroup) {
 	fmt.Println("Finished reading File")
 
 }
+// PopulateFile Populate the dictionary from a file of words
 func (dic *DictMap) PopulateFile(filename string) *sync.WaitGroup {
 
 	dic.wg.Add(1)
 	go dic.populateFile(filename, &dic.wg)
 	return &dic.wg
 }
+// Add a word to the dictionary
+// This builds the rune by rune tree
 func (dic *DictMap) Add(word string) {
 	if len(word) == 0 {
 		dic.isword = true
@@ -129,7 +140,7 @@ func (dic *DictMap) Add(word string) {
 	// and record how many bytes we used for this
 	r, length := utf8.DecodeRuneInString(word)
 	// remove the appropriate number of bytes from the string
-	new_word := word[length:]
+	newWord := word[length:]
 
 	// Do we already have a rune map for that?
 	dependantDict, ok := dic.currentRunes[r]
@@ -144,12 +155,14 @@ func (dic *DictMap) Add(word string) {
 		}
 	}
 	// add the remaiins to the
-	dependantDict.Add(new_word)
+	dependantDict.Add(newWord)
 	dic.currentRunes[r] = dependantDict
 }
+// Wait until all the processing has completed
 func (dic *DictMap) Wait() {
 	dic.wg.Wait()
 }
+// Exists returns true is the word exists in the dictionary
 func (dic DictMap) Exists(inTxt string) bool {
 	isWord, _ := dic.partialExists(inTxt)
 	return isWord
@@ -161,12 +174,11 @@ func (dic DictMap) partialExists(inTxt string) (isword, partial bool) {
 	}
 
 	r, length := utf8.DecodeRuneInString(inTxt)
-	new_word := inTxt[length:]
+	newWord := inTxt[length:]
 	dependantDict, ok := dic.currentRunes[r]
 
 	if !ok {
 		return false, false
-	} else {
-		return dependantDict.partialExists(new_word)
 	}
-}
+		return dependantDict.partialExists(newWord)
+	}
