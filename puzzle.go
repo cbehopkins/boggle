@@ -164,7 +164,10 @@ func (pz Puzzle) visit(runningWord string, vC Coord) error {
 	if partial {
 		// Walk from this coord
 		//log.Println("Walking from:", vC)
-		pz.Walk(newWord, vC)
+		err := pz.Walk(newWord, vC)
+		if err != nil {
+			log.Fatal("Weird, Walk shouldn't return errors", err)
+		}
 	}
 	return nil
 }
@@ -223,7 +226,10 @@ func (pz Puzzle) RunWalk() {
 	pzLen := pz.Len()
 	for i := 0; i < pzLen; i++ {
 		for j := 0; j < pzLen; j++ {
-			pz.visit("", Coord{i, j})
+			err := pz.visit("", Coord{i, j})
+			if err != nil {
+				log.Fatal("visit errored", err)
+			}
 		}
 	}
 }

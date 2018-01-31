@@ -20,13 +20,14 @@ type DictMap struct {
 	// Additionally the other words that use this as a root
 	// what is the next rune in that word
 	currentRunes map[rune]*DictMap
-	wg           sync.WaitGroup
+	wg           *sync.WaitGroup
 }
 
 // NewDictMap return a new dictionary
 func NewDictMap(input []string) *DictMap {
 	itm := new(DictMap)
 	itm.currentRunes = make(map[rune]*DictMap)
+	itm.wg = new(sync.WaitGroup)
 	if len(input) > 0 {
 		itm.Populate(input)
 	}
@@ -107,7 +108,12 @@ func (dic *DictMap) populateFile(filename string, wg *sync.WaitGroup) {
 		os.Exit(1)
 		return
 	}
-	defer f.Close()
+	defer func() {
+		err := f.Close()
+		if err != nil {
+			log.Println("Cannot close file", err)
+		}
+	}()
 	r := bufio.NewReader(f)
 	for s, e := Readln(r); e == nil; s, e = Readln(r) {
 		s = strings.TrimSpace(s)
@@ -130,8 +136,8 @@ func (dic *DictMap) populateFile(filename string, wg *sync.WaitGroup) {
 func (dic *DictMap) PopulateFile(filename string) *sync.WaitGroup {
 
 	dic.wg.Add(1)
-	go dic.populateFile(filename, &dic.wg)
-	return &dic.wg
+	go dic.populateFile(filename, dic.wg)
+	return dic.wg
 }
 
 // Add a word to the dictionary

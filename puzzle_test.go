@@ -25,16 +25,16 @@ func TestBuildDict0(t *testing.T) {
 	dictMap := NewDictMap(testDict)
 	testStr := "bad"
 	if !dictMap.Exists(testStr) {
-		log.Fatalf("%s not found in %s", testStr, dictMap.String)
+		log.Fatalf("%s not found in %s", testStr, dictMap.String())
 	}
 
 	testStr = "b"
 	if dictMap.Exists(testStr) {
-		log.Fatalf("%s is found in %s", testStr, dictMap.String)
+		log.Fatalf("%s is found in %s", testStr, dictMap.String())
 	}
 	_, partEx := dictMap.partialExists(testStr)
 	if !partEx {
-		log.Fatalf("%s is not partially found in %s", testStr, dictMap.String)
+		log.Fatalf("%s is not partially found in %s", testStr, dictMap.String())
 	}
 }
 func TestVisit0(t *testing.T) {
@@ -78,8 +78,14 @@ func TestVisit0(t *testing.T) {
 	var foundWord string
 	wordRxd := pz.rxWord(&foundWord)
 
-	pz.visit("", Coord{0, 0})
-	pz.visit("", Coord{0, 1})
+	err := pz.visit("", Coord{0, 0})
+	if err != nil {
+		log.Fatal("Visit problems", err)
+	}
+	err = pz.visit("", Coord{0, 1})
+	if err != nil {
+		log.Fatal("Visit problems", err)
+	}
 	<-wordRxd
 
 	if foundWord != "cab" {
