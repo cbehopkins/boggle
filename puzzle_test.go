@@ -89,7 +89,7 @@ func TestVisit0(t *testing.T) {
 	<-wordRxd
 
 	if foundWord != "cab" {
-		log.Fatalln("Got wrong word, expected cab, got %s\n", foundWord)
+		log.Fatalf("Got wrong word, expected cab, got %s\n", foundWord)
 	}
 	// Having visited, let's make sure the worker can finish
 	close(pz.workerComplete) // Close manually as we haven't started a worker
