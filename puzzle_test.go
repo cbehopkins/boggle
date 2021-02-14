@@ -3,6 +3,8 @@ package boggle
 import (
 	"log"
 	"testing"
+
+	"github.com/cbehopkins/wordlist"
 )
 
 func TestBas0(t *testing.T) {
@@ -174,6 +176,30 @@ func TestVisit1(t *testing.T) {
 	}
 	if tooMany {
 		log.Fatal("Oh Well!")
+	}
+}
+
+func TestAsPerJs(t *testing.T) {
+
+	data, err := wordlist.Asset("data/wordlist.txt")
+	if err != nil {
+		t.Fatal("Error", err)
+	}
+	dic := NewDictMap([]string{})
+	dic.PopulateFromBa(data)
+
+	var ra [][]rune
+	ra = [][]rune{
+		{'b', 'a', 'b', 'd'},
+		{'w', 's', 'y', 't'},
+		{'a', 'e', 'd', 'g'},
+		{'q', 'u', 'p', 'o'},
+	}
+	sortedResult := NewPuzzleSolve(ra, dic)
+
+	log.Println(sortedResult)
+	if len(sortedResult[0]) != 6 {
+		t.Fatal("Length of word incorrect:")
 	}
 }
 

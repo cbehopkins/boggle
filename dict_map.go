@@ -2,7 +2,9 @@ package boggle
 
 import (
 	"bufio"
+	"bytes"
 	"fmt"
+	"io"
 	"log"
 	"os"
 	"strings"
@@ -53,7 +55,7 @@ func IndentString(level int, inTxt string) string {
 	return retStr
 }
 
-// NewPuzzle return a new puzzle struicture of specified size
+// NewPuzzle return a new puzzle structure of specified size
 func (dic *DictMap) NewPuzzle(size int, grid [][]rune) (pz *Puzzle) {
 	dic.Wait()
 	pz = NewPuzzle(size)
@@ -114,22 +116,25 @@ func (dic *DictMap) populateFile(filename string, wg *sync.WaitGroup) {
 			log.Println("Cannot close file", err)
 		}
 	}()
-	r := bufio.NewReader(f)
-	for s, e := Readln(r); e == nil; s, e = Readln(r) {
-		s = strings.TrimSpace(s)
-		comment := strings.HasPrefix(s, "//")
-		comment = comment || strings.HasPrefix(s, "#")
+	dic.populateFromReader(f)
+	fmt.Println("Finished reading File:", filename)
+}
+func (dic *DictMap) PopulateFromBa(ba []byte) {
+	dic.populateFromReader(bytes.NewReader(ba))
+}
+func (dic *DictMap) populateFromReader(f io.Reader) {
+	r := bufio.NewScanner(f)
+	for r.Scan() {
+		s := strings.TrimSpace(r.Text())
+		comment := strings.HasPrefix(s, "//") || strings.HasPrefix(s, "#")
 		if comment {
 			continue
 		}
 		if s == "" {
 			continue
 		}
-
 		dic.Add(s)
 	}
-	fmt.Println("Finished reading File")
-
 }
 
 // PopulateFile Populate the dictionary from a file of words

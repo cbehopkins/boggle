@@ -3,6 +3,7 @@ package boggle
 import (
 	"errors"
 	"log"
+	"sort"
 )
 
 // Puzzle erm??? Not sure. Any ideas?
@@ -32,6 +33,35 @@ func (pz *Puzzle) startWorker(sw func(string)) {
 func (pz *Puzzle) SetDict(dct *DictMap) {
 	pz.dict = dct
 }
+func NewPuzzleSolve(ra [][]rune, dic *DictMap) []string {
+	pz := NewPuzzle(len(ra))
+	return pz.GetWordsSorted(ra, dic)
+}
+
+// GetWordsSorted set the dicitonary we wish to use
+func (pz *Puzzle) GetWordsSorted(ra [][]rune, dic *DictMap) []string {
+
+	dic.Wait()
+	pz.SetDict(dic)
+	pz.Grid = ra
+
+	wrdsFound := make(map[string]struct{})
+
+	wrkFunc := func(wrd string) {
+		wrdsFound[wrd] = struct{}{}
+	}
+	pz.StartWorker(wrkFunc)
+	pz.RunWalk()
+	pz.Shutdown()
+	sortedResult := make([]string, len(wrdsFound))
+	i := 0
+	for wrd := range wrdsFound {
+		sortedResult[i] = wrd
+		i++
+	}
+	sort.Sort(sort.Reverse(byLength(sortedResult)))
+	return sortedResult
+}
 
 // NewPuzzle return a new puzzle of the specified size
 func NewPuzzle(size int) *Puzzle {
@@ -48,20 +78,31 @@ func (pz Puzzle) Len() int {
 	return len(pz.Grid)
 }
 
-// Copy one puzzle into anoteher destination one
+// Copy one puzzle into another destination one
 func (pz Puzzle) Copy(dst *Puzzle) {
 	dst.newWordChan = pz.newWordChan
 	dst.dict = pz.dict
 	pzLen := pz.Len()
+	if len(pz.Grid) != pzLen {
+		log.Fatal("Grid length error :", pzLen, len(pz.Grid))
+	}
+	if len(pz.Visited) != pzLen {
+		log.Fatal("Visited length error :", pzLen, len(pz.Visited))
+	}
 
 	if dst.Len() != pzLen {
 		dst.Grid = make([][]rune, pzLen)
 		dst.Visited = make([][]bool, pzLen)
 	}
-
 	for i := 0; i < pzLen; i++ {
 		row := make([]rune, pzLen)
 		rowV := make([]bool, pzLen)
+		if len(pz.Grid[i]) != pzLen {
+			log.Fatal("Grid length error at item:", i, pzLen, len(pz.Grid[i]))
+		}
+		if len(pz.Visited[i]) != pzLen {
+			log.Fatal("Visited length error at item:", i, pzLen, len(pz.Visited[i]))
+		}
 		for j := 0; j < pzLen; j++ {
 			row[j] = pz.Grid[i][j]
 			rowV[j] = pz.Visited[i][j]
@@ -151,7 +192,7 @@ func (pz Puzzle) visit(runningWord string, vC Coord) error {
 	defer pz.clearVisited(vC)
 
 	//log.Println("Visiting Coordinate, with run", vC, runningWord)
-	// To visit a coordinagte we:
+	// To visit a coordinate we:
 	// Look and see if we currently have a word
 	run := pz.getRune(vC)
 	newWord := runningWord + string(run)
@@ -195,7 +236,7 @@ func (pz Puzzle) newWord(inTxt string) {
 }
 
 // Walk the puzzle
-// starting fromt he currel (partially complete) puzzle
+// starting from the current (partially complete) puzzle
 // and try everything at every location
 func (pz Puzzle) Walk(runningWord string, startC Coord) error {
 	pzCopy := new(Puzzle)
@@ -204,7 +245,7 @@ func (pz Puzzle) Walk(runningWord string, startC Coord) error {
 	// Only ever work on a copy of the data
 	// so that we can safely modify it
 	if !pzCopy.visitedTrue(startC) {
-		log.Fatalf("Que?%v", pzCopy)
+		log.Fatal("Que?", pzCopy)
 	}
 	// Calculate each co-ordinate we can visit
 	for _, crd := range startC.getCoords(pz.Len()) {
